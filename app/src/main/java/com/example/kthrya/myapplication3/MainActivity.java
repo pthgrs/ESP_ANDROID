@@ -265,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
             inputTextView.setText("seekBar : 클릭끝");
-           // pub("speed", Integer.toString(progress));
+            pub("speed", Integer.toString(progress));
         }
     }
 
@@ -287,39 +287,39 @@ public class MainActivity extends AppCompatActivity {
                 // control direction
                 if (direction == JoyStick.STICK_NONE) {
 
-                   // pub("direction", "stop");
+                    pub("direction", "stop");
                     inputTextView.setText("stick_none");
 
                 } else if (direction == JoyStick.STICK_UP) {
 
-                  //  pub("direction", "go");
+                    pub("direction", "go");
                     inputTextView.setText("stick_up");
 
                 } else if (direction == JoyStick.STICK_DOWN) {
 
-                 //   pub("direction", "back");
+                    pub("direction", "back");
                     inputTextView.setText("stick_down");
 
                 } else if (direction == JoyStick.STICK_RIGHT) {
 
-                  //  pub("direction", "right");
+                    pub("direction", "right");
                     inputTextView.setText("stick_right");
 
                 } else if (direction == JoyStick.STICK_LEFT) {
 
-                   // pub("direction", "left");
+                    pub("direction", "left");
                     inputTextView.setText("stick_left");
                 }
 
                 // control speed
                 int sp = speedSeekBar.getProgress();
-               // pub("speed", Integer.toString(sp));
+               pub("speed", Integer.toString(sp));
 
                 // store previous direction
                 oldDirection = direction;
 
             } else if (e.getAction() == MotionEvent.ACTION_UP) {
-              //  pub("direction", "stop");
+                pub("direction", "stop");
             }
             return true;
         }
