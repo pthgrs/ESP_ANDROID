@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="setting_activity_title"
+    android:title="설정">
+    <PreferenceCategory
+        android:key="setting_activity_mode"
+        android:title="동작 모드 변경">
+        <ListPreference
+            android:key="mode_move_list"
+            android:title="모드 설정"
+            android:dialogTitle="모드 선택"
+            android:entries="@array/mode_entries"
+            android:entryValues="@array/mode_values"
+            android:defaultValue="0"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="setting_alarm_mode"
+        android:title="알람 설정">
+        <SwitchPreference
+            android:key="mode_alarm_fire"
+            android:title="화재 감지"
+            android:defaultValue="true"
+            android:switchTextOff="OFF"
+            android:switchTextOn="ON"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>

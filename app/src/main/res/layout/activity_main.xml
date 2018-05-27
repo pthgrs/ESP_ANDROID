@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.5">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="top|start">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INPUT : "
+                android:textColor="@android:color/white"/>
+            <TextView
+                android:id="@+id/inputTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NO Input"
+                android:textColor="@android:color/white"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="top|end"
+            android:layout_marginRight="15dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_gravity="top|end"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <Switch
+                    android:id="@+id/routeSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:text="경로기록"
+                    android:layout_weight="4"
+                    android:textColor="@android:color/white" />
+
+                <ImageView
+                    android:id="@+id/settingImageView"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitXY"
+                    android:src = "@drawable/setting_button"
+                    />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="32dp"
+                android:layout_height="0dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_gravity="end"
+                android:layout_weight="8"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/speedTextView"
+                    android:layout_width="32dp"
+                    android:layout_height="20dp"
+                    android:gravity="center"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp" />
+
+                <FrameLayout
+                    android:layout_width="32dp"
+                    android:layout_height="204dp"
+                    android:orientation="vertical">
+
+                    <SeekBar
+                        android:id="@+id/speedSeekBar"
+                        android:layout_width="200dp"
+                        android:layout_height="32dp"
+                        android:layout_gravity="center"
+                        android:max="10"
+                        android:progress="1"
+                        android:rotation="270" />
+
+                </FrameLayout>
+            </LinearLayout>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="2"
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/photoBtn"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:src = "@drawable/photo_button"/>
+            </RelativeLayout>
+
+        </LinearLayout>
+
+        <RelativeLayout
+            android:id="@+id/joystick_layout"
+            android:layout_width="130dp"
+            android:layout_height="130dp"
+            android:layout_gravity="bottom|start"
+            android:orientation="vertical"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/joystick_bg">
+
+        </RelativeLayout>
+
+
+    </FrameLayout>
+
+</FrameLayout>

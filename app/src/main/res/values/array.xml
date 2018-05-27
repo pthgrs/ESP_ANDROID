@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="mode_entries">
+        <item>수동 조작 모드</item>
+        <item>자동 이동 모드</item>
+        <item>얼굴 인식 모드</item>
+    </string-array>
+    <string-array name="mode_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+</resources>
