@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
         getSupportActionBar().hide();
 
         // mqtt
-        /*
+
         try {
             String clientId = MqttClient.generateClientId();
 
@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (MqttException e) {
             e.printStackTrace();
         }
-        */
+
         /** 초기화 **/
         //입력 값을 보여준다.(디버그 용)
         inputTextView = findViewById(R.id.inputTextView);
@@ -132,12 +132,12 @@ public class MainActivity extends AppCompatActivity {
         joyStick = new JoyStick(getApplicationContext(), joystickLayout, R.drawable.joystick_center);
         //스트리밍 영상 뷰
         webView = findViewById(R.id.webView);
-        /*
+
         webView.setWebViewClient(new WebViewClient());
         webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webView.loadUrl("http://192.168.0.7:5000");
-        */
+
 
         //설정 버튼
         settingBtn = findViewById(R.id.settingImageView);
@@ -231,8 +231,6 @@ public class MainActivity extends AppCompatActivity {
 
                 }
                 webView.setDrawingCacheEnabled(false);
-                //조작부분 보이도록 다시 설정
-                webView.setAlpha((float)0.5);
             }
         });
 
