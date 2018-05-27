@@ -81,7 +81,28 @@ public class MainActivity extends AppCompatActivity {
 
     //이동 모드 초기값 = 수동 조작
     private int moveMode;
+    //화재 알림 모드
+    private int fireMode;
 
+    //밀리초(1초=1000밀리초) 단위, 경로 저장모드를 스위치 버튼으로 켤 때 초기화
+    private long currentTime;
+    //현재 이동 방향
+    private int currentDirection;
+    //현재 속도
+    private int currentSpeed;
+    //경로저장모드 일때의 메시지 : "밀리초,이동방향,속도"
+    //방향이 바뀔때, 속도가 바뀔때 새로운 값과의 시간차와 이전의 값을 보낸다.
+    //ex)1초후 방향이 오른쪽 -> 왼쪽으로 변하였고 속도는 그대로 3일 경우 : 1,오른쪽,3
+    //경로 저장모드를 스위치 버튼으로 끌때, 마지막 메시지를 보낸다.
+    private String autoMessage;
+
+    /*pub Topic
+    1) dirction : 방향제어
+    2) speed : 스피드 제어
+    3) moveMode : 모드제어
+    4) fireMode : 화재경보 활성화 여부
+    5) rec : 경로저장모드 파일저장 메시지
+    */
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -171,10 +192,19 @@ public class MainActivity extends AppCompatActivity {
                     inputTextView.setText("switch : 경로저장 ON");
                     moveMode = MODE_AUTOREC;
                     checkMode(moveMode);
+                    //저장시점 초기화
+                    currentTime = System.currentTimeMillis();
+                    currentDirection = joyStick.getDirection();
+                    currentSpeed = speedSeekBar.getProgress();
+                    //라즈베리파이 모드 변경
+                    pub("moveMode",Integer.toString(MODE_AUTOREC));
                 } else {
                     inputTextView.setText("switch : 경로저장 OFF");
                     moveMode = MODE_MANUAL;
                     checkMode(moveMode);
+                    autoMessage = makeAutoMessage();
+                    pub("rec", autoMessage);
+                    pub("moveMode",Integer.toString(MODE_MANUAL));
                 }
             }
         });
@@ -266,6 +296,14 @@ public class MainActivity extends AppCompatActivity {
         public void onStopTrackingTouch(SeekBar seekBar) {
             inputTextView.setText("seekBar : 클릭끝");
             pub("speed", Integer.toString(progress));
+            //만약 속도에 변화가 생겼다면
+            if(currentSpeed != progress){
+                //그 이전의 상태를 보냄
+                autoMessage = makeAutoMessage();
+                pub("rec", autoMessage);
+            }
+            //상태갱신
+            currentSpeed = speedSeekBar.getProgress();
         }
     }
 
@@ -286,7 +324,6 @@ public class MainActivity extends AppCompatActivity {
 
                 // control direction
                 if (direction == JoyStick.STICK_NONE) {
-
                     pub("direction", "stop");
                     inputTextView.setText("stick_none");
 
@@ -311,12 +348,21 @@ public class MainActivity extends AppCompatActivity {
                     inputTextView.setText("stick_left");
                 }
 
+                // store previous direction
+                oldDirection = direction;
+
                 // control speed
                 int sp = speedSeekBar.getProgress();
                pub("speed", Integer.toString(sp));
 
-                // store previous direction
-                oldDirection = direction;
+                //만약 경로저장모드이고 방향이 바뀌었다면
+                if(moveMode == MODE_AUTOREC){
+                    //그 이전의 상태를 보내고
+                    autoMessage = makeAutoMessage();
+                    pub("rec", autoMessage);
+                    //상태 갱신
+                    currentDirection = direction;
+                }
 
             } else if (e.getAction() == MotionEvent.ACTION_UP) {
                 pub("direction", "stop");
@@ -333,7 +379,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //설정파일 초기 시작시 불러오기
+    //설정파일 초기 시작 시, 변경 시 불러오기
     private void loadConfig(){
         config_move = sp.getString("MOVE", "0");
         if (config_move != null) {
@@ -349,15 +395,27 @@ public class MainActivity extends AppCompatActivity {
                 config_move = "face";
                 moveMode = MODE_FACE;
             }
-            else config_move = "error";
         }
         //설정에 따라 화면 조작가능 여부 변경
         checkMode(moveMode);
 
+
         config_fire = sp.getBoolean("FIRE", false);
-        if (config_fire) config_move += " / fire true";
-        else config_move += " / fire false";
+        if (config_fire){
+            config_move += " / fire true";
+            fireMode = 1;
+        }
+        else {
+            config_move += " / fire false";
+            fireMode = 0;
+        }
         inputTextView.setText(config_move);
+
+        //이동모드 라즈베리파이로 전송
+        pub("moveMode", Integer.toString(moveMode));
+        //화재알림모드 라즈베리파이로 전송(1=알림설정 0=알림해제)
+        pub("fireMode", Integer.toString(fireMode));
+
     }
 
     //moveMode에 따른 화면조작여부 설정 함수
@@ -391,6 +449,15 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             return false;
         }
+    }
+
+    private String makeAutoMessage(){
+        long now = System.currentTimeMillis();
+        long timeDiff = now- currentTime;
+        currentTime = now;
+        String str =  Long.toString(timeDiff)+","+Integer.toString(currentDirection)+","+
+                Integer.toString(currentSpeed);
+        return str;
     }
 
 }
