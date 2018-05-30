@@ -112,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         getSupportActionBar().hide();
 
         // mqtt
+
         try {
             String clientId = MqttClient.generateClientId();
 
@@ -197,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
                     //저장시점 초기화
                     currentTime = System.currentTimeMillis();
                     currentDirection = joyStick.getDirection();
-                    currentSpeed = speedSeekBar.getProgress();
+                    currentSpeed = getMySeekbarProgress(speedSeekBar.getProgress());
                     //라즈베리파이 모드 변경
                    pub("moveMode",Integer.toString(MODE_AUTOREC));
                 } else {
@@ -283,8 +284,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             this.progress = progress;
-            speedTextView.setText(String.valueOf(progress));
-            inputTextView.setText("seekBar : 속도 조절 중 : " + progress);
+            speedTextView.setText(String.valueOf(getMySeekbarProgress(progress)));
+            inputTextView.setText("seekBar : 속도 조절 중 : " + getMySeekbarProgress(progress));
         }
 
         //바 터치 시
@@ -305,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
                 pub("rec", autoMessage);
             }
             //상태갱신
-            currentSpeed = speedSeekBar.getProgress();
+            currentSpeed = getMySeekbarProgress(speedSeekBar.getProgress());
         }
     }
 
@@ -353,7 +354,7 @@ public class MainActivity extends AppCompatActivity {
                 oldDirection = direction;
 
                 // control speed
-                int sp = speedSeekBar.getProgress();
+                int sp = getMySeekbarProgress(speedSeekBar.getProgress());
                 pub("speed", Integer.toString(sp));
 
                 //만약 경로저장모드이고 방향이 바뀌었다면
@@ -459,6 +460,11 @@ public class MainActivity extends AppCompatActivity {
         String str =  Long.toString(timeDiff)+","+Integer.toString(currentDirection)+","+
                 Integer.toString(currentSpeed);
         return str;
+    }
+
+    public int getMySeekbarProgress(int progress){
+        int min = 1;
+        return (progress + min);
     }
 
 }
