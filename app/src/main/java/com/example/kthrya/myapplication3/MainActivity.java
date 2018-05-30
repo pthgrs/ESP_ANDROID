@@ -76,8 +76,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int MODE_AUTOREC = 10;
     //자동 이동모드
     private static final int MODE_AUTO = 11;
-    //얼굴 인식 모드
+    //얼굴 인식(객체 인식) 모드
     private static final int MODE_FACE = 20;
+    //속도 최솟값
+    private static final int MIN_SPEED = 1;
 
     //이동 모드 초기값 = 수동 조작
     private int moveMode;
@@ -198,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
                     //저장시점 초기화
                     currentTime = System.currentTimeMillis();
                     currentDirection = joyStick.getDirection();
-                    currentSpeed = getMySeekbarProgress(speedSeekBar.getProgress());
+                    currentSpeed = speedSeekBar.getProgress() + MIN_SPEED;
                     //라즈베리파이 모드 변경
                    pub("moveMode",Integer.toString(MODE_AUTOREC));
                 } else {
@@ -284,8 +286,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             this.progress = progress;
-            speedTextView.setText(String.valueOf(getMySeekbarProgress(progress)));
-            inputTextView.setText("seekBar : 속도 조절 중 : " + getMySeekbarProgress(progress));
+            speedTextView.setText(String.valueOf(progress + MIN_SPEED));
+            inputTextView.setText("seekBar : 속도 조절 중 : " + progress + MIN_SPEED);
         }
 
         //바 터치 시
@@ -306,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
                 pub("rec", autoMessage);
             }
             //상태갱신
-            currentSpeed = getMySeekbarProgress(speedSeekBar.getProgress());
+            currentSpeed =speedSeekBar.getProgress() + MIN_SPEED;
         }
     }
 
@@ -354,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
                 oldDirection = direction;
 
                 // control speed
-                int sp = getMySeekbarProgress(speedSeekBar.getProgress());
+                int sp = speedSeekBar.getProgress()+MIN_SPEED;
                 pub("speed", Integer.toString(sp));
 
                 //만약 경로저장모드이고 방향이 바뀌었다면
@@ -462,9 +464,5 @@ public class MainActivity extends AppCompatActivity {
         return str;
     }
 
-    public int getMySeekbarProgress(int progress){
-        int min = 1;
-        return (progress + min);
-    }
 
 }
