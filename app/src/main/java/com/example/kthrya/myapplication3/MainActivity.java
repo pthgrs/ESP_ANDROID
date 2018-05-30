@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         getSupportActionBar().hide();
 
         // mqtt
-
+        /*
         try {
             String clientId = MqttClient.generateClientId();
 
@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (MqttException e) {
             e.printStackTrace();
         }
-
+        */
         /** 초기화 **/
         //입력 값을 보여준다.(디버그 용)
         inputTextView = findViewById(R.id.inputTextView);
@@ -151,14 +151,17 @@ public class MainActivity extends AppCompatActivity {
         joystickLayout = findViewById(R.id.joystick_layout);
         //조이스틱 입력 처리 및 표현
         joyStick = new JoyStick(getApplicationContext(), joystickLayout, R.drawable.joystick_center);
-        //스트리밍 영상 뷰
-        webView = findViewById(R.id.webView);
 
+
+        //스트리밍 영상 뷰
+
+        webView = findViewById(R.id.webView);
+        /*
         webView.setWebViewClient(new WebViewClient());
         webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webView.loadUrl("http://192.168.0.7:5000");
-
+        */
 
         //설정 버튼
         settingBtn = findViewById(R.id.settingImageView);
@@ -197,14 +200,14 @@ public class MainActivity extends AppCompatActivity {
                     currentDirection = joyStick.getDirection();
                     currentSpeed = speedSeekBar.getProgress();
                     //라즈베리파이 모드 변경
-                    pub("moveMode",Integer.toString(MODE_AUTOREC));
+                   // pub("moveMode",Integer.toString(MODE_AUTOREC));
                 } else {
                     inputTextView.setText("switch : 경로저장 OFF");
                     moveMode = MODE_MANUAL;
                     checkMode(moveMode);
                     autoMessage = makeAutoMessage();
-                    pub("rec", autoMessage);
-                    pub("moveMode",Integer.toString(MODE_MANUAL));
+                    //pub("rec", autoMessage);
+                   // pub("moveMode",Integer.toString(MODE_MANUAL));
                 }
             }
         });
@@ -295,12 +298,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
             inputTextView.setText("seekBar : 클릭끝");
-            pub("speed", Integer.toString(progress));
+           // pub("speed", Integer.toString(progress));
             //만약 속도에 변화가 생겼다면
             if(currentSpeed != progress){
                 //그 이전의 상태를 보냄
                 autoMessage = makeAutoMessage();
-                pub("rec", autoMessage);
+               // pub("rec", autoMessage);
             }
             //상태갱신
             currentSpeed = speedSeekBar.getProgress();
@@ -324,27 +327,27 @@ public class MainActivity extends AppCompatActivity {
 
                 // control direction
                 if (direction == JoyStick.STICK_NONE) {
-                    pub("direction", "stop");
+                  //  pub("direction", "stop");
                     inputTextView.setText("stick_none");
 
                 } else if (direction == JoyStick.STICK_UP) {
 
-                    pub("direction", "go");
+                  //  pub("direction", "go");
                     inputTextView.setText("stick_up");
 
                 } else if (direction == JoyStick.STICK_DOWN) {
 
-                    pub("direction", "back");
+                  //  pub("direction", "back");
                     inputTextView.setText("stick_down");
 
                 } else if (direction == JoyStick.STICK_RIGHT) {
 
-                    pub("direction", "right");
+                 //  pub("direction", "right");
                     inputTextView.setText("stick_right");
 
                 } else if (direction == JoyStick.STICK_LEFT) {
 
-                    pub("direction", "left");
+                  // pub("direction", "left");
                     inputTextView.setText("stick_left");
                 }
 
@@ -353,19 +356,19 @@ public class MainActivity extends AppCompatActivity {
 
                 // control speed
                 int sp = speedSeekBar.getProgress();
-               pub("speed", Integer.toString(sp));
+             //  pub("speed", Integer.toString(sp));
 
                 //만약 경로저장모드이고 방향이 바뀌었다면
                 if(moveMode == MODE_AUTOREC){
                     //그 이전의 상태를 보내고
                     autoMessage = makeAutoMessage();
-                    pub("rec", autoMessage);
+                  //  pub("rec", autoMessage);
                     //상태 갱신
                     currentDirection = direction;
                 }
 
             } else if (e.getAction() == MotionEvent.ACTION_UP) {
-                pub("direction", "stop");
+             //  pub("direction", "stop");
             }
             return true;
         }
@@ -412,9 +415,9 @@ public class MainActivity extends AppCompatActivity {
         inputTextView.setText(config_move);
 
         //이동모드 라즈베리파이로 전송
-        pub("moveMode", Integer.toString(moveMode));
+      //  pub("moveMode", Integer.toString(moveMode));
         //화재알림모드 라즈베리파이로 전송(1=알림설정 0=알림해제)
-        pub("fireMode", Integer.toString(fireMode));
+     //   pub("fireMode", Integer.toString(fireMode));
 
     }
 

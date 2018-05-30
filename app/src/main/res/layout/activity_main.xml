@@ -18,19 +18,21 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_gravity="top|start">
+            android:layout_gravity="top|start"
+            android:orientation="horizontal">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="INPUT : "
-                android:textColor="@android:color/white"/>
+                android:textColor="@android:color/darker_gray" />
+
             <TextView
                 android:id="@+id/inputTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="NO Input"
-                android:textColor="@android:color/white"/>
+                android:textColor="@android:color/darker_gray" />
 
         </LinearLayout>
 
@@ -53,9 +55,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="top|end"
-                    android:text="경로기록"
                     android:layout_weight="4"
-                    android:textColor="@android:color/white" />
+                    android:text="경로기록"
+                    android:textColor="@android:color/darker_gray" />
 
                 <ImageView
                     android:id="@+id/settingImageView"
@@ -64,8 +66,7 @@
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
                     android:scaleType="fitXY"
-                    android:src = "@drawable/setting_button"
-                    />
+                    android:src="@drawable/setting_button" />
 
             </LinearLayout>
 
@@ -114,19 +115,19 @@
                     android:layout_width="80dp"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:src = "@drawable/photo_button"/>
+                    android:src="@drawable/photo_button" />
             </RelativeLayout>
 
         </LinearLayout>
 
         <RelativeLayout
             android:id="@+id/joystick_layout"
-            android:layout_width="130dp"
-            android:layout_height="130dp"
-            android:layout_gravity="bottom|start"
-            android:orientation="vertical"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
             android:layout_centerHorizontal="true"
-            android:background="@drawable/joystick_bg">
+            android:layout_gravity="bottom|start"
+            android:background="@drawable/joystick_bg"
+            android:orientation="vertical">
 
         </RelativeLayout>
 
