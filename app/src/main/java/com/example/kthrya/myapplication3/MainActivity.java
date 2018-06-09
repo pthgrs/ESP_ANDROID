@@ -4,12 +4,17 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
@@ -33,8 +38,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
+import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -46,12 +54,17 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.EmptyStackException;
 
 
 public class MainActivity extends AppCompatActivity {
 
-    private MqttAndroidClient client;
+    private MqttClient pubClient = null;
+    private MqttClient subClient = null;
+
+    private MqttConnectOptions mqttConnectOptions;
     static String host = "tcp://192.168.219.115:1883";
+//    static String host = "tcp://192.168.0.9:1883";
     private int qos = 2;
 
     TextView inputTextView, speedTextView;
@@ -86,18 +99,6 @@ public class MainActivity extends AppCompatActivity {
     //화재 알림 모드
     private int fireMode;
 
-    //밀리초(1초=1000밀리초) 단위, 경로 저장모드를 스위치 버튼으로 켤 때 초기화
-    private long currentTime;
-    //현재 이동 방향
-    private int currentDirection;
-    //현재 속도
-    private int currentSpeed;
-    //경로저장모드 일때의 메시지 : "밀리초,이동방향,속도"
-    //방향이 바뀔때, 속도가 바뀔때 새로운 값과의 시간차와 이전의 값을 보낸다.
-    //ex)1초후 방향이 오른쪽 -> 왼쪽으로 변하였고 속도는 그대로 3일 경우 : 1,오른쪽,3
-    //경로 저장모드를 스위치 버튼으로 끌때, 마지막 메시지를 보낸다.
-    private String autoMessage;
-
     /*pub Topic
     1) dirction : 방향제어
     2) speed : 스피드 제어
@@ -113,29 +114,23 @@ public class MainActivity extends AppCompatActivity {
         //액션바 숨기기
         getSupportActionBar().hide();
 
-        // mqtt
-
+        // MQTT
         try {
             String clientId = MqttClient.generateClientId();
 
-            client = new MqttAndroidClient(this.getApplicationContext()
-                    , host
-                    , clientId);
+            mqttConnectOptions = new MqttConnectOptions();
+            mqttConnectOptions.setCleanSession(true);
 
-            IMqttToken token = client.connect();
+            // connecto to mqtt brokers(host)
+            // pubClient
+            pubClient = new MqttClient(host, clientId, new MemoryPersistence());
+            pubClient.connect(mqttConnectOptions);
 
-            token.setActionCallback(new IMqttActionListener() {
-                @Override
-                public void onSuccess(IMqttToken asyncActionToken) {
-                    Log.d("mqtt", "success");
-                }
+            // subClient
+            SubThread sub = new SubThread();
+            sub.run();
 
-                @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.d("mqtt", "fail");
-                }
-            });
-        } catch (MqttException e) {
+        }catch(MqttException e){
             e.printStackTrace();
         }
 
@@ -154,18 +149,18 @@ public class MainActivity extends AppCompatActivity {
         //조이스틱 입력 처리 및 표현
         joyStick = new JoyStick(getApplicationContext(), joystickLayout, R.drawable.joystick_center);
 
-
         //스트리밍 영상 뷰
-
         webView = findViewById(R.id.webView);
-        /*
-        webView.setWebViewClient(new WebViewClient());
-        webSettings = webView.getSettings();
-        webSettings.setJavaScriptEnabled(true);
-        webView.loadUrl("http://192.168.0.7:5000");
-        */
+//        webView.setWebViewClient(new WebViewClient());
+//        webSettings = webView.getSettings();
+//        webSettings.setJavaScriptEnabled(true);
+//        webView.loadUrl("http://192.168.0.7:5000");
 
-        //설정 버튼
+        // 스트리밍 url 클립보드에 저장
+        ClipboardManager clipboardManager =  (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        clipboardManager.setText("input url");
+
+       //설정 버튼
         settingBtn = findViewById(R.id.settingImageView);
 
         //설정 버튼 제어
@@ -181,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
         sp = getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
         loadConfig();
 
-
+        // joyStick 설정
         joyStick.setStickSize(70, 70);
         joyStick.setStickAlpha(100);
         joyStick.setOffset(30);
@@ -197,18 +192,12 @@ public class MainActivity extends AppCompatActivity {
                     inputTextView.setText("switch : 경로저장 ON");
                     moveMode = MODE_AUTOREC;
                     checkMode(moveMode);
-                    //저장시점 초기화
-                    currentTime = System.currentTimeMillis();
-                    currentDirection = joyStick.getDirection();
-                    currentSpeed = speedSeekBar.getProgress() + MIN_SPEED;
                     //라즈베리파이 모드 변경
                    pub("moveMode",Integer.toString(MODE_AUTOREC));
                 } else {
                     inputTextView.setText("switch : 경로저장 OFF");
                     moveMode = MODE_MANUAL;
                     checkMode(moveMode);
-                    autoMessage = makeAutoMessage();
-                    pub("rec", autoMessage);
                     pub("moveMode",Integer.toString(MODE_MANUAL));
                 }
             }
@@ -301,14 +290,6 @@ public class MainActivity extends AppCompatActivity {
         public void onStopTrackingTouch(SeekBar seekBar) {
             inputTextView.setText("seekBar : 클릭끝");
             pub("speed", Integer.toString(progress));
-            //만약 속도에 변화가 생겼다면
-            if(currentSpeed != progress){
-                //그 이전의 상태를 보냄
-                autoMessage = makeAutoMessage();
-                pub("rec", autoMessage);
-            }
-            //상태갱신
-            currentSpeed =speedSeekBar.getProgress() + MIN_SPEED;
         }
     }
 
@@ -355,19 +336,6 @@ public class MainActivity extends AppCompatActivity {
                 // store previous direction
                 oldDirection = direction;
 
-                // control speed
-                int sp = speedSeekBar.getProgress()+MIN_SPEED;
-                pub("speed", Integer.toString(sp));
-
-                //만약 경로저장모드이고 방향이 바뀌었다면
-                if(moveMode == MODE_AUTOREC){
-                    //그 이전의 상태를 보내고
-                    autoMessage = makeAutoMessage();
-                   pub("rec", autoMessage);
-                    //상태 갱신
-                    currentDirection = direction;
-                }
-
             } else if (e.getAction() == MotionEvent.ACTION_UP) {
                pub("direction", "stop");
             }
@@ -375,9 +343,65 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public class MyMqttCallback implements MqttCallback{
+
+        @Override
+        public void connectionLost(Throwable cause) {
+
+        }
+
+        @Override
+        public void messageArrived(String topic, MqttMessage message) throws Exception {
+
+            Log.i("arrived", new String(message.getPayload()));
+
+            /* 수정 필요*/
+           // inputTextView.setText("arrived" + new String(message.getPayload()));
+            // inputTextView.setText("arrived" + new String(message.getPayload()));
+
+//            AlertDialog.Builder builder = new AlertDialog.Builder(getApplication());
+//            builder.setMessage("알림창")
+//                    .setCancelable(false)
+//                    .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+//                        @Override
+//                        public void onClick(DialogInterface dialog, int which) {
+//                            finish();
+//                        }
+//                    });
+//
+//            AlertDialog dialog = builder.create();
+//            dialog.show();
+        }
+
+        @Override
+        public void deliveryComplete(IMqttDeliveryToken token) {
+
+        }
+    }
+
+    private class SubThread extends Thread{
+        @Override
+        public void run() {
+
+            try {
+                String clientId = MqttClient.generateClientId();
+                subClient = new MqttClient(host, clientId, new MemoryPersistence());
+                subClient.setCallback(new MyMqttCallback());
+
+                subClient.connect(mqttConnectOptions);
+                subClient.subscribe("TOANDROID/#", 1);
+
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void pub(String topic, String message) {
         try {
-            client.publish(topic, message.getBytes(), qos, false);
+            String piTopic = "TOPI/" + topic;
+            System.out.println(piTopic);
+            pubClient.publish(piTopic, message.getBytes(), qos, false);
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -385,7 +409,9 @@ public class MainActivity extends AppCompatActivity {
 
     //설정파일 초기 시작 시, 변경 시 불러오기
     private void loadConfig(){
+
         config_move = sp.getString("MOVE", "0");
+
         if (config_move != null) {
             if (config_move.equals("0")){
                 config_move = "manual";
@@ -403,7 +429,6 @@ public class MainActivity extends AppCompatActivity {
         //설정에 따라 화면 조작가능 여부 변경
         checkMode(moveMode);
 
-
         config_fire = sp.getBoolean("FIRE", false);
         if (config_fire){
             config_move += " / fire true";
@@ -420,6 +445,13 @@ public class MainActivity extends AppCompatActivity {
         //화재알림모드 라즈베리파이로 전송(1=알림설정 0=알림해제)
         pub("fireMode", Integer.toString(fireMode));
 
+        // start VLC app
+        if(moveMode == MODE_FACE){
+            // VLC for android app
+            Intent intent = getPackageManager().getLaunchIntentForPackage("org.videolan.vlc");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        }
     }
 
     //moveMode에 따른 화면조작여부 설정 함수
@@ -454,15 +486,4 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
-
-    private String makeAutoMessage(){
-        long now = System.currentTimeMillis();
-        long timeDiff = now- currentTime;
-        currentTime = now;
-        String str =  Long.toString(timeDiff)+","+Integer.toString(currentDirection)+","+
-                Integer.toString(currentSpeed);
-        return str;
-    }
-
-
 }

@@ -1,6 +1,7 @@
 package com.example.kthrya.myapplication3;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.ListPreference;
@@ -11,6 +12,7 @@ import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 public class SettingActivity extends PreferenceActivity {
     private PreferenceScreen screen;
@@ -35,6 +37,7 @@ public class SettingActivity extends PreferenceActivity {
             public boolean onPreferenceChange(Preference preference, Object newValue) {
                 ListPreference listPreference = (ListPreference) preference;
                 int index = listPreference.findIndexOfValue((String) newValue);
+
                 moveMode.setSummary(index >= 0 ? listPreference.getEntries()[index] : null);
                 editor.putString("MOVE", listPreference.getEntryValues()[index].toString());
                 editor.commit();
@@ -68,9 +71,6 @@ public class SettingActivity extends PreferenceActivity {
         sp.getString("MOVE","0");
         sp.getBoolean("FIRE",true);
     }
-
-
-
 }
 
 
