@@ -13,6 +13,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.net.Uri;
 import android.nfc.Tag;
 import android.os.Bundle;
@@ -63,7 +65,8 @@ public class MainActivity extends AppCompatActivity {
     private MqttClient subClient = null;
 
     private MqttConnectOptions mqttConnectOptions;
-    static String host = "tcp://192.168.219.115:1883";
+    static String host;
+    //= "tcp://192.168.219.115:1883";
 //    static String host = "tcp://192.168.0.9:1883";
     private int qos = 2;
 
@@ -106,6 +109,11 @@ public class MainActivity extends AppCompatActivity {
     4) fireMode : 화재경보 활성화 여부
     5) rec : 경로저장모드 파일저장 메시지
     */
+
+    private String ipAddress;
+    private String msgAddress;
+    private String videoAddress;
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,6 +121,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         //액션바 숨기기
         getSupportActionBar().hide();
+
+        Intent intent = getIntent();
+        ipAddress = intent.getStringExtra("IP_KEY").toString();
+        String msgPort = intent.getStringExtra("PORT1_KEY").toString();
+        String videoPort = intent.getStringExtra("PORT2_KEY").toString();
+        msgAddress = "tcp://"+ ipAddress+":"+msgPort;
+        host = msgAddress;
+
+        videoAddress = "http://"+ipAddress+":"+videoPort+"/?action=stream";
+
+
+
+
 
         // MQTT
         try {
@@ -356,21 +377,35 @@ public class MainActivity extends AppCompatActivity {
             Log.i("arrived", new String(message.getPayload()));
 
             /* 수정 필요*/
-           // inputTextView.setText("arrived" + new String(message.getPayload()));
-            // inputTextView.setText("arrived" + new String(message.getPayload()));
+            String alarmMsg = new String(message.getPayload());
+            inputTextView.setText("arrived" + alarmMsg);
 
-//            AlertDialog.Builder builder = new AlertDialog.Builder(getApplication());
-//            builder.setMessage("알림창")
-//                    .setCancelable(false)
-//                    .setPositiveButton("확인", new DialogInterface.OnClickListener() {
-//                        @Override
-//                        public void onClick(DialogInterface dialog, int which) {
-//                            finish();
-//                        }
-//                    });
-//
-//            AlertDialog dialog = builder.create();
-//            dialog.show();
+            //화재 설정시
+            if (fireMode == 1) {
+                final SoundPool soundPool = new SoundPool(1, AudioManager.STREAM_ALARM, 0);
+                final int soundID = soundPool.load(MainActivity.this, R.raw.fireSiren,1);
+                soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener(){
+                    @Override
+                    public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                        soundPool.play(soundID,1f,1f,0,1,1f);
+                    }
+                });
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(getApplication());
+                builder.setTitle("경 고");
+                builder.setMessage(alarmMsg)
+                        .setCancelable(false)
+                        .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                soundPool.stop(soundID);
+                                soundPool.release();
+                            }
+                        });
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
         }
 
         @Override
