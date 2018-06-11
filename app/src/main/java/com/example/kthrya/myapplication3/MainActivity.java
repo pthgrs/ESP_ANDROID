@@ -2,10 +2,7 @@ package com.example.kthrya.myapplication3;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,7 +13,6 @@ import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.net.Uri;
-import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
@@ -27,10 +23,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -39,11 +33,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.eclipse.paho.android.service.MqttAndroidClient;
-import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
-import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -56,7 +46,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.EmptyStackException;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -114,6 +103,13 @@ public class MainActivity extends AppCompatActivity {
     private String msgAddress;
     private String videoAddress;
 
+
+    private int callBackNum = 0;
+    private  AlertDialog.Builder builder;
+    private AlertDialog dialog;
+    private SoundPool soundPool;
+    private int soundID;
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,10 +123,25 @@ public class MainActivity extends AppCompatActivity {
         String msgPort = intent.getStringExtra("PORT1_KEY").toString();
         String videoPort = intent.getStringExtra("PORT2_KEY").toString();
         msgAddress = "tcp://"+ ipAddress+":"+msgPort;
+
         host = msgAddress;
 
         videoAddress = "http://"+ipAddress+":"+videoPort+"/?action=stream";
+        soundPool = new SoundPool(1, AudioManager.STREAM_ALARM, 0);
+        soundID = soundPool.load(MainActivity.this, R.raw.firesiren, 1);
 
+        builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("경 고");
+        builder.setMessage("니 집에 불남 ㅅㄱ")
+                .setCancelable(false)
+                .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        soundPool.autoPause();
+                        //soundPool.release();
+                    }
+                });
+        dialog = builder.create();
 
 
 
@@ -147,9 +158,32 @@ public class MainActivity extends AppCompatActivity {
             pubClient = new MqttClient(host, clientId, new MemoryPersistence());
             pubClient.connect(mqttConnectOptions);
 
+            pubClient.subscribe("TOANDROID/#",1);
+
+            pubClient.setCallback(new MyMqttCallback(){
+                @Override
+                public void messageArrived(String topic, MqttMessage message) throws Exception {
+                    final String alarmMsg = new String(message.getPayload());
+                    Log.i("arrived", alarmMsg);
+                    callBackNum++;
+                    soundPool.play(soundID, 1f, 1f, 1, -1, 1f);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            inputTextView.setText("arrived" + alarmMsg + callBackNum);
+                            if(fireMode == 1) {
+                                if(!MainActivity.this.isFinishing())
+                                dialog.show();
+                            }
+                        }
+                    });
+                }
+            });
+
+
             // subClient
-            SubThread sub = new SubThread();
-            sub.run();
+           // SubThread sub = new SubThread();
+            //sub.run();
 
         }catch(MqttException e){
             e.printStackTrace();
@@ -373,21 +407,20 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void messageArrived(String topic, MqttMessage message) throws Exception {
-
-            Log.i("arrived", new String(message.getPayload()));
+            String alarmMsg = new String(message.getPayload());
+            Log.i("arrived", alarmMsg);
 
             /* 수정 필요*/
-            String alarmMsg = new String(message.getPayload());
-            inputTextView.setText("arrived" + alarmMsg);
 
+            inputTextView.setText("arrived" + alarmMsg + "fireMode : " +fireMode);
             //화재 설정시
             if (fireMode == 1) {
                 final SoundPool soundPool = new SoundPool(1, AudioManager.STREAM_ALARM, 0);
-                final int soundID = soundPool.load(MainActivity.this, R.raw.fireSiren,1);
-                soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener(){
+                final int soundID = soundPool.load(MainActivity.this, R.raw.firesiren, 1);
+                soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
                     @Override
                     public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
-                        soundPool.play(soundID,1f,1f,0,1,1f);
+                        soundPool.play(soundID, 1f, 1f, 0, 1, 1f);
                     }
                 });
 
@@ -399,7 +432,6 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 soundPool.stop(soundID);
-                                soundPool.release();
                             }
                         });
 
@@ -424,9 +456,9 @@ public class MainActivity extends AppCompatActivity {
                 subClient.setCallback(new MyMqttCallback());
 
                 subClient.connect(mqttConnectOptions);
+                //subClient.subscribeWithResponse("TOANDROID/#",0);
                 subClient.subscribe("TOANDROID/#", 1);
-
-            } catch (MqttException e) {
+                } catch (MqttException e) {
                 e.printStackTrace();
             }
         }
@@ -521,4 +553,11 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
+
+    public void onDestroy() {
+        super.onDestroy();
+        soundPool.release();
+
+    }
+
 }
