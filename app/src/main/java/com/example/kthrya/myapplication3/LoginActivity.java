@@ -9,7 +9,7 @@ import android.widget.EditText;
 
 public class LoginActivity extends Activity {
 
-    EditText ipEdit,port1Edit, port2Edit;
+    EditText ipEdit,ipEdit2;
     Button accessBtn;
 
     @Override
@@ -18,8 +18,7 @@ public class LoginActivity extends Activity {
         setContentView(R.layout.activity_login);
 
         ipEdit = findViewById(R.id.ipText);
-        port1Edit = findViewById(R.id.portText1);
-        port2Edit = findViewById(R.id.portText2);
+        ipEdit2 = findViewById(R.id.ipText2);
         accessBtn = findViewById(R.id.acessBtn);
 
 
@@ -27,13 +26,11 @@ public class LoginActivity extends Activity {
             @Override
             public void onClick(View v) {
                 final String ip = ipEdit.getText().toString();
-                final String msgPort = port1Edit.getText().toString();
-                final String videoPort = port2Edit.getText().toString();
+                final String ip2 = ipEdit2.getText().toString();
 
                 Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                 intent.putExtra("IP_KEY",ip);
-                intent.putExtra("PORT1_KEY",msgPort);
-                intent.putExtra("PORT2_KEY",videoPort);
+                intent.putExtra("IP_KEY2",ip2);
                 startActivity(intent);
             }
         });

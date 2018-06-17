@@ -3,7 +3,6 @@ package com.example.kthrya.myapplication3;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -23,6 +22,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
@@ -51,17 +51,14 @@ import java.util.Date;
 public class MainActivity extends AppCompatActivity {
 
     private MqttClient pubClient = null;
-    private MqttClient subClient = null;
 
     private MqttConnectOptions mqttConnectOptions;
     static String host;
-    //= "tcp://192.168.219.115:1883";
-//    static String host = "tcp://192.168.0.9:1883";
     private int qos = 2;
 
     TextView inputTextView, speedTextView;
     Switch routeSwitch;
-    SeekBar speedSeekBar;
+    SeekBar speedSeekBar, degreeSeekBar;
     ImageButton photoBtn;
     RelativeLayout joystickLayout;
     JoyStick joyStick;
@@ -100,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
     */
 
     private String ipAddress;
+    private String ipAddress2;
     private String msgAddress;
     private String videoAddress;
 
@@ -120,19 +118,18 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         ipAddress = intent.getStringExtra("IP_KEY").toString();
-        String msgPort = intent.getStringExtra("PORT1_KEY").toString();
-        String videoPort = intent.getStringExtra("PORT2_KEY").toString();
-        msgAddress = "tcp://"+ ipAddress+":"+msgPort;
+        ipAddress2 = intent.getStringExtra("IP_KEY2").toString();
+        msgAddress = "tcp://"+ ipAddress+":1883";
 
         host = msgAddress;
 
-        videoAddress = "http://"+ipAddress+":"+videoPort+"/?action=stream";
+        videoAddress = "http://"+ipAddress2+":8080/stream/video.mjpeg";
         soundPool = new SoundPool(1, AudioManager.STREAM_ALARM, 0);
         soundID = soundPool.load(MainActivity.this, R.raw.firesiren, 1);
 
         builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle("경 고");
-        builder.setMessage("니 집에 불남 ㅅㄱ")
+        builder.setMessage("화재 발생!!!!")
                 .setCancelable(false)
                 .setPositiveButton("확인", new DialogInterface.OnClickListener() {
                     @Override
@@ -142,9 +139,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
         dialog = builder.create();
-
-
-
 
         // MQTT
         try {
@@ -158,32 +152,13 @@ public class MainActivity extends AppCompatActivity {
             pubClient = new MqttClient(host, clientId, new MemoryPersistence());
             pubClient.connect(mqttConnectOptions);
 
+
             pubClient.subscribe("TOANDROID/#",1);
 
             pubClient.setCallback(new MyMqttCallback(){
-                @Override
-                public void messageArrived(String topic, MqttMessage message) throws Exception {
-                    final String alarmMsg = new String(message.getPayload());
-                    Log.i("arrived", alarmMsg);
-                    callBackNum++;
-                    soundPool.play(soundID, 1f, 1f, 1, -1, 1f);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            inputTextView.setText("arrived" + alarmMsg + callBackNum);
-                            if(fireMode == 1) {
-                                if(!MainActivity.this.isFinishing())
-                                dialog.show();
-                            }
-                        }
-                    });
-                }
+
             });
 
-
-            // subClient
-           // SubThread sub = new SubThread();
-            //sub.run();
 
         }catch(MqttException e){
             e.printStackTrace();
@@ -197,6 +172,8 @@ public class MainActivity extends AppCompatActivity {
         //속도 조절바, 속도 값
         speedSeekBar = findViewById(R.id.speedSeekBar);
         speedTextView = findViewById(R.id.speedTextView);
+        //서보모토 각도 조절바
+        degreeSeekBar = findViewById(R.id.degreeSeekBar);
         //사진찍기 버튼
         photoBtn = findViewById(R.id.photoBtn);
         //조이스틱 레이아웃
@@ -206,14 +183,10 @@ public class MainActivity extends AppCompatActivity {
 
         //스트리밍 영상 뷰
         webView = findViewById(R.id.webView);
-//        webView.setWebViewClient(new WebViewClient());
-//        webSettings = webView.getSettings();
-//        webSettings.setJavaScriptEnabled(true);
-//        webView.loadUrl("http://192.168.0.7:5000");
-
-        // 스트리밍 url 클립보드에 저장
-        ClipboardManager clipboardManager =  (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-        clipboardManager.setText("input url");
+        webView.setWebViewClient(new WebViewClient());
+        webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webView.loadUrl(videoAddress);
 
        //설정 버튼
         settingBtn = findViewById(R.id.settingImageView);
@@ -230,6 +203,10 @@ public class MainActivity extends AppCompatActivity {
         //설정 파일 값 불러오기
         sp = getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
         loadConfig();
+        //서보모터 init
+        pub("degree", Integer.toString(90));
+        //속도 init
+        pub("speed", Integer.toString(MIN_SPEED));
 
         // joyStick 설정
         joyStick.setStickSize(70, 70);
@@ -259,7 +236,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //속도조절 시크바 제어
-        speedSeekBar.setOnSeekBarChangeListener(new SeekBarListener());
+        speedSeekBar.setOnSeekBarChangeListener(new SpeedSeekBarListener());
+        //각도조절 시크바 제어
+        degreeSeekBar.setOnSeekBarChangeListener(new DegreeSeekBarListener());
 
         //사진찍기 버튼
         photoBtn.setOnClickListener(new Button.OnClickListener() {
@@ -324,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
         sp.registerOnSharedPreferenceChangeListener(listener);
     }
 
-    private class SeekBarListener implements SeekBar.OnSeekBarChangeListener {
+    private class SpeedSeekBarListener implements SeekBar.OnSeekBarChangeListener {
         int progress;
 
         @Override
@@ -345,6 +324,30 @@ public class MainActivity extends AppCompatActivity {
         public void onStopTrackingTouch(SeekBar seekBar) {
             inputTextView.setText("seekBar : 클릭끝");
             pub("speed", Integer.toString(progress));
+        }
+    }
+
+    private class DegreeSeekBarListener implements SeekBar.OnSeekBarChangeListener {
+        int progress;
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            this.progress = progress;
+            speedTextView.setText(String.valueOf(progress));
+            inputTextView.setText("seekBar : 각도 조절 중 : " + progress);
+            pub("degree", Integer.toString((progress + 3) * 10));
+        }
+
+        //바 터치 시
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            inputTextView.setText("seekBar : 클릭시작");
+        }
+
+        //바에서 손을 놓았을 시
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            inputTextView.setText("seekBar : 클릭끝");
         }
     }
 
@@ -404,63 +407,26 @@ public class MainActivity extends AppCompatActivity {
         public void connectionLost(Throwable cause) {
 
         }
-
-        @Override
         public void messageArrived(String topic, MqttMessage message) throws Exception {
-            String alarmMsg = new String(message.getPayload());
+            final String alarmMsg = new String(message.getPayload());
             Log.i("arrived", alarmMsg);
-
-            /* 수정 필요*/
-
-            inputTextView.setText("arrived" + alarmMsg + "fireMode : " +fireMode);
-            //화재 설정시
-            if (fireMode == 1) {
-                final SoundPool soundPool = new SoundPool(1, AudioManager.STREAM_ALARM, 0);
-                final int soundID = soundPool.load(MainActivity.this, R.raw.firesiren, 1);
-                soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
-                    @Override
-                    public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
-                        soundPool.play(soundID, 1f, 1f, 0, 1, 1f);
+            callBackNum++;
+            if(fireMode == 1)
+                soundPool.play(soundID, 1f, 1f, 1, 0, 1f);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    inputTextView.setText("arrived" + alarmMsg + callBackNum);
+                    if(fireMode == 1) {
+                        if(!MainActivity.this.isFinishing())
+                            dialog.show();
                     }
-                });
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(getApplication());
-                builder.setTitle("경 고");
-                builder.setMessage(alarmMsg)
-                        .setCancelable(false)
-                        .setPositiveButton("확인", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                soundPool.stop(soundID);
-                            }
-                        });
-
-                AlertDialog dialog = builder.create();
-                dialog.show();
-            }
+                }
+            });
         }
-
         @Override
         public void deliveryComplete(IMqttDeliveryToken token) {
 
-        }
-    }
-
-    private class SubThread extends Thread{
-        @Override
-        public void run() {
-
-            try {
-                String clientId = MqttClient.generateClientId();
-                subClient = new MqttClient(host, clientId, new MemoryPersistence());
-                subClient.setCallback(new MyMqttCallback());
-
-                subClient.connect(mqttConnectOptions);
-                //subClient.subscribeWithResponse("TOANDROID/#",0);
-                subClient.subscribe("TOANDROID/#", 1);
-                } catch (MqttException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -512,13 +478,6 @@ public class MainActivity extends AppCompatActivity {
         //화재알림모드 라즈베리파이로 전송(1=알림설정 0=알림해제)
         pub("fireMode", Integer.toString(fireMode));
 
-        // start VLC app
-        if(moveMode == MODE_FACE){
-            // VLC for android app
-            Intent intent = getPackageManager().getLaunchIntentForPackage("org.videolan.vlc");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        }
     }
 
     //moveMode에 따른 화면조작여부 설정 함수

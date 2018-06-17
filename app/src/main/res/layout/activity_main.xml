@@ -97,7 +97,7 @@
                         android:layout_width="200dp"
                         android:layout_height="32dp"
                         android:layout_gravity="center"
-                        android:max="9"
+                        android:max="4"
                         android:rotation="270" />
 
                 </FrameLayout>
@@ -119,16 +119,31 @@
 
         </LinearLayout>
 
-        <RelativeLayout
-            android:id="@+id/joystick_layout"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:layout_centerHorizontal="true"
-            android:layout_gravity="bottom|start"
-            android:background="@drawable/joystick_bg"
-            android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="bottom|start">
+            <RelativeLayout
+                android:id="@+id/joystick_layout"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_centerHorizontal="true"
+                android:layout_gravity="bottom|start"
+                android:background="@drawable/joystick_bg"
+                android:orientation="vertical">
+            </RelativeLayout>
 
-        </RelativeLayout>
+            <SeekBar
+                android:id="@+id/degreeSeekBar"
+                android:layout_width="240dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center|bottom"
+                android:layout_marginBottom="30dp"
+                android:layout_marginLeft="20dp"
+                android:max="12"
+                android:progress="6" />
+        </LinearLayout>
 
 
     </FrameLayout>

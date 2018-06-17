@@ -27,20 +27,14 @@
                 android:id="@+id/ipText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="ip"
+                android:hint="MQTT IP"
                 android:maxLines="1"/>
 
             <EditText
-                android:id="@+id/portText1"
+                android:id="@+id/ipText2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="MQTTport"
-                android:maxLines="1" />
-            <EditText
-                android:id="@+id/portText2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="VIDEOport"
+                android:hint="Streaming IP"
                 android:maxLines="1" />
 
             <Button
